@@ -51,13 +51,15 @@ namespace ContosoPizza.Controllers
         POST action
           -By passing the item (in this example, a Pizza) into the method as a parameter, 
           -ASP.NET Core will automatically convert any application/json that is sent to the endpoint into a populated .NET Pizza object.
+          -Responds only to the HTTP POST verb, as denoted by the [HttpPost] attribute.
+          -Inserts the request body's Pizza object into the in-memory cache.
         */
         [HttpPost]
         public IActionResult Create(Pizza pizza)
         {            
-            // This code will save the pizza and return a result
+            PizzaService.Add(pizza);
+            return CreatedAtAction(nameof(Create), new { id = pizza.Id }, pizza);
         }
-
 
         /*ASP.NET Core action result	HTTP status code	Description
           CreatedAtAction	            201	              The pizza was added to the in-memory cache.
@@ -66,14 +68,25 @@ namespace ContosoPizza.Controllers
 
         /*
         PUT action
-          -takes in id and Pizza object that needs to be updated
+          -Responds only to the HTTP PUT verb, as denoted by the [HttpPut] attribute.
+          -Requires that the id parameter's value is included in the URL segment after pizza/.
+          -Returns IActionResult because the ActionResult return type isn't known until runtime. 
+          -The BadRequest, NotFound, and NoContent methods return BadRequestResult, NotFoundResult, and NoContentResult types, respectively.
         */
         [HttpPut("{id}")]
         public IActionResult Update(int id, Pizza pizza)
         {
-            // This code will update the pizza and return a result
-        }
+            if (id != pizza.Id)
+                return BadRequest();
 
+            var existingPizza = PizzaService.Get(id);
+            if(existingPizza is null)
+                return NotFound();
+
+            PizzaService.Update(pizza);           
+
+            return NoContent();
+        }
         /*ASP.NET Core action result	HTTP status code	Description
           NoContent	                  204	              The pizza was updated in the in-memory cache.
           BadRequest	                400	              The request body's Id value doesn't match the route's id value.
@@ -82,14 +95,24 @@ namespace ContosoPizza.Controllers
 
         /*
         DELETE action
-          -takes in the id of the pizza to remove from the in-memory cache
+          -Responds only to the HTTP DELETE verb, as denoted by the [HttpDelete] attribute.
+          -Requires that id parameter's value is included in the URL segment after pizza/.
+          -Returns IActionResult because the ActionResult return type isn't known until runtime. 
+          -The NotFound and NoContent methods return NotFoundResult and NoContentResult types, respectively.
+          -Queries the in-memory cache for a pizza matching the provided id parameter.
         */
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
-            // This code will delete the pizza and return a result
-        }
+            var pizza = PizzaService.Get(id);
 
+            if (pizza is null)
+                return NotFound();
+
+            PizzaService.Delete(id);
+
+            return NoContent();
+        }
         /*ASP.NET Core action result	HTTP status code	Description
           NoContent	                  204	              The pizza was deleted from the in-memory cache.
           NotFound	                  404	              A pizza matching the provided id parameter doesn't exist in the in-memory.*/
